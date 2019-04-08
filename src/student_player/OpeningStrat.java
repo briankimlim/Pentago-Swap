@@ -146,7 +146,8 @@ public class OpeningStrat {
 //	    }
 	    else {   
 //	    	Move myMove = MiniMax.miniMaxStrategy(boardState, boardState.getTurnPlayer());
-	    	Move myMove = MiniMaxABPruning.miniMaxStrategy(boardState, boardState.getTurnPlayer());
+	    	MiniMaxABPruning instc = new MiniMaxABPruning();
+	    	Move myMove = instc.abPruningStrategy(boardState, boardState.getTurnPlayer());
 //	    	Move myMove = MiniMaxABPruning.abPruningStrategy(boardState, boardState.getTurnPlayer());
 			return myMove;
 	    }
