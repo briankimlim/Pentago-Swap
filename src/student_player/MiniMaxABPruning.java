@@ -7,95 +7,105 @@ import pentago_swap.PentagoBoardState;
 import pentago_swap.PentagoMove;
 import boardgame.Board;
 
+
 public class MiniMaxABPruning {
-	private  int maxDepth = 2;
-	private  int alpha = -100;
-	private  int beta = 100;
+	private int maxDepth = 2;
+	private int alpha = -100;
+	private int beta = 100;
 	
-	private  int computeCounter = 0;
-	private  int maxLoopIndex = 0;
-	private  int minLoopIndex = 0;
+	private long elapsedTime = 0L;
+	private long startTime = 0L;
+	private int TIME_LIMIT = 1800;
 	
-	private  long elapsedTime = 0L;
-	private  long startTime = 0L;
-	private  int TIME_LIMIT = 1800;
-	
-	private  PentagoMove bestMove = null;
-	private  PentagoMove firstMove = null;
-	
-	private  int bestUtilitySoFar = 0;
-
-	private class MoveObj {
-
-	    public int value;
-	    public PentagoMove move;
-
-	    public MoveObj() {
-	        value = 0;
-	    }
-
+	/* Custom object used for storing a PentagoMove & its associated utility value.
+	 */
+	private class MoveObj {	
+		//Object fields
+	    private int value;
+	    private PentagoMove move;
+	    
+	    //Public constructor
 	    public MoveObj(int value) {
 	        this.value = value;
 	    }
-
-	    public MoveObj(int value, PentagoMove move) {
-	        this.value = value;
-	        this.move = move;
+	    
+	    //Getters & Setters
+	    public int getValue() {
+	    	return this.value;
+	    }
+	    
+	    public PentagoMove getMove() {
+	    	return this.move;
+	    }
+	    
+	    public void setValue(int value) {
+	    	this.value = value;
+	    }
+	    
+	    public void setMove(PentagoMove move) {
+	    	this.move = move;
 	    }
 	}
-
-
-
 	
-	public  PentagoMove abPruningStrategy (PentagoBoardState boardState, int currPlayer){
-		//recursionCounter = 0;
+	/** Returns the best move found using MiniMax alpha-beta pruning.
+	 * @param boardState
+	 * @param currPlayer
+	 * @return PentagoMove to be played for the current turn
+	 */
+	public PentagoMove abPruningStrategy (PentagoBoardState boardState, int currPlayer){
 		elapsedTime = 0L;
 		startTime = System.currentTimeMillis();
-		ArrayList<PentagoMove> legalMoves = boardState.getAllLegalMoves();
 		
-		firstMove = legalMoves.get(0);
+		//Used for finding the first legal move given the board configuration
+		ArrayList<PentagoMove> legalMoves = boardState.getAllLegalMoves();
+		PentagoMove firstMove = legalMoves.get(0);
 		
 //		while(elapsedTime < TIME_LIMIT) {
 			MoveObj bestMoveObj = evaluateBoard(boardState, currPlayer, 0, true, alpha, beta, elapsedTime);
-			if (bestMoveObj.move == null && boardState.isLegal(firstMove)) {
+			
+			//If the best move wasn't properly found, return the first legal move
+			if (bestMoveObj.getMove() == null && boardState.isLegal(firstMove)) {
 				System.out.println("Elapsed time: "+elapsedTime+"\nwhile break: firstmove");
 				return firstMove;
 			}
 			System.out.println("Elapsed time: "+elapsedTime+"\nwhile break: BEST move");
-			return bestMoveObj.move;
+			return bestMoveObj.getMove();
 //		}
-//		
 //		System.err.println("while Timeout: using first move");
 //		return firstMove;
 	}
 	
-	public  MoveObj evaluateBoard(PentagoBoardState boardState, int currPlayer, int depth, boolean isMaximizer, int alpha, int beta, long elapsedTime) {
-		 //int computeCounter = 0;
+	/** Recursively finds the optimal move and its associated utility value using alpha-beta pruning.
+	 * @param boardState
+	 * @param currPlayer
+	 * @param depth
+	 * @param isMaximizer
+	 * @param alpha
+	 * @param beta
+	 * @param elapsedTime
+	 * @return bestMoveObj containing the optimal move and its associated utility value.
+	 */
+	public MoveObj evaluateBoard(PentagoBoardState boardState, int currPlayer, int depth, boolean isMaximizer, int alpha, int beta, long elapsedTime) {
 		
 //		if(elapsedTime > TIME_LIMIT) {
 //			System.err.println("Bad bad timeout code....");
 //			return new MoveObj(13371337);
 //		}
 		
+		// terminating condition
 		if (depth == maxDepth || boardState.gameOver()) {
 			int value = getUtility(boardState, currPlayer);
-//			return getUtility2(boardState, currPlayer);
-//			return getUtility3(boardState, currPlayer);
 			return new MoveObj(value);
 		}
 		elapsedTime = (new Date()).getTime() - startTime;
 		
 		MoveObj someMoveObj;
-//		MoveObj bestMoveObj = null;
 		
+		//If the current call is the maximizer
 		if(isMaximizer) {
-			maxLoopIndex = 0;
-//			int bestMaxValue = -100;
 			MoveObj bestMoveObj = new MoveObj(-100);
-//			MoveObj bestMoveObj = null;
 			ArrayList<PentagoMove> legalMoves = boardState.getAllLegalMoves();
 			for(PentagoMove someMove: legalMoves) {
-				maxLoopIndex++;
 				PentagoBoardState clonedBoardState = (PentagoBoardState) boardState.clone();
 				clonedBoardState.processMove(someMove);
 				someMoveObj = evaluateBoard(clonedBoardState, currPlayer, depth+1, false, alpha, beta, elapsedTime);
@@ -104,40 +114,29 @@ public class MiniMaxABPruning {
 //					System.err.println("Maximizer break timeout code!");
 //					break;
 //				}
-				if (bestMoveObj == null || bestMoveObj.value < someMoveObj.value) {
+				if (bestMoveObj.getValue() < someMoveObj.getValue()) {
 					bestMoveObj = someMoveObj;
-					bestMoveObj.move = someMove;
+					bestMoveObj.setMove(someMove);
 				}
 				
-				if (someMoveObj.value > alpha) {
-					alpha = someMoveObj.value;
-//					bestMoveObj = someMoveObj;
-//					bestMoveObj.move = someMove;
+				if (someMoveObj.getValue() > alpha) {
+					alpha = someMoveObj.getValue();
 				}
 				
-//				bestMaxValue = Math.max(bestMaxValue, someMoveObj.value);
-//				alpha = Math.max(alpha, bestMaxValue);
-				
+				//if true, pruning occurs
 				if(beta <= alpha) {
-					computeCounter++;
-//					break;	
-					bestMoveObj.value = beta;
-					bestMoveObj.move = null;
+					bestMoveObj.setValue(beta);
+					bestMoveObj.setMove(null);
 					return bestMoveObj;
 				}
 			}
-//			System.out.println("Total nodes: "+legalMoves.size()+"\n Min Nodes processed: "+maxLoopIndex);
-//			System.out.println("\nalpha: "+alpha+" beta: "+beta);
 			return bestMoveObj;
 		}
+		// minimizer
 		else {
-			minLoopIndex = 0;
-//			int bestMinValue = 100;
 			MoveObj bestMoveObj = new MoveObj(100);
-//			MoveObj bestMoveObj = null;
 			ArrayList<PentagoMove> legalMoves = boardState.getAllLegalMoves();
 			for(PentagoMove someMove: legalMoves) {
-				minLoopIndex++;
 				PentagoBoardState clonedBoardState = (PentagoBoardState) boardState.clone();
 				clonedBoardState.processMove(someMove);
 				someMoveObj = evaluateBoard(clonedBoardState, currPlayer, depth+1, true, alpha, beta, elapsedTime);
@@ -146,25 +145,19 @@ public class MiniMaxABPruning {
 //					System.err.println("Maximizer break timeout code!");
 //					break;
 //				}
-				if (bestMoveObj == null || bestMoveObj.value > someMoveObj.value) {
+				if (bestMoveObj.getValue() > someMoveObj.getValue()) {
 					bestMoveObj = someMoveObj;
-					bestMoveObj.move = someMove;
+					bestMoveObj.setMove(someMove);
 				}
 				
-				if (someMoveObj.value < beta) {
-					beta = someMoveObj.value;
-//					bestMoveObj = someMoveObj;
-//					bestMoveObj.move = someMove;
+				if (someMoveObj.getValue() < beta) {
+					beta = someMoveObj.getValue();
 				}
 				
-//				bestMaxValue = Math.max(bestMaxValue, someMoveObj.value);
-//				alpha = Math.max(alpha, bestMaxValue);
-				
+				//if true, pruning occurs
 				if(beta <= alpha) {
-					computeCounter++;
-//					break;	
-					bestMoveObj.value = alpha;
-					bestMoveObj.move = null;
+					bestMoveObj.setValue(alpha);
+					bestMoveObj.setMove(null);
 					return bestMoveObj;
 				}
 			}
@@ -172,19 +165,32 @@ public class MiniMaxABPruning {
 		}
 	}
 	
-	public  int calculateUtility(int utility, int adjacencyBonus) {		
+	/** Used for tinkering with utility based on current utility & adjacencyBonus.
+	 * @param utility
+	 * @param adjacencyBonus
+	 * @return utility value
+	 */
+	private int calculateUtility(int utility, int adjacencyBonus) {		
 		if(adjacencyBonus == 0) {
-			return utility++;
+			return (utility + 1);
 		} 
 		else {
 			return (utility + adjacencyBonus + 1);
 		}
 	}
 	
-	public  int getUtility(PentagoBoardState boardState, int currPlayer) {
+	/** Returns the utility of the board state configuration for the Player.
+	 * @param boardState
+	 * @param currPlayer
+	 * @return utility value
+	 */
+	public int getUtility(PentagoBoardState boardState, int currPlayer) {
 		int utility = 0;
 		int adjacencyBonus = 0;
 		
+		/* If a board win, loss or draw is detected, award points accordingly.
+		 * Arbitrary points awarded must be within the bounds of alpha & beta.
+		 * */
 		if (boardState.gameOver()) {
 			if (boardState.getWinner() == currPlayer) {
 				utility = 50;
@@ -196,12 +202,15 @@ public class MiniMaxABPruning {
 				}
 		}
 		
-		// row adjacency check
+		/* Utility points are awarded for having adjacent pieces of the Player's color
+		 * in horizontal, vertical and diagonal orientations.
+		 * */
 		for(int i = 0; i < 6; i++) {
 			elapsedTime = (new Date()).getTime() - startTime;
 			
 			//Diagonals adjacency checks
 			if(i < 5) {
+				// White player
 				if (currPlayer == 0) {
 					
 					// Top-left to bottom-right diagonal adjacency check
@@ -210,7 +219,7 @@ public class MiniMaxABPruning {
 					utility = calculateUtility(utility, adjacencyBonus);
 					adjacencyBonus++;
 					} 
-					// 
+					// Top-right to bottom-left diagonal adjacency check
 					if (boardState.getPieceAt(i, 5-i).toString().equals("w")
 							&& boardState.getPieceAt(i+1, 4-i).toString().equals("w")) {
 					utility = calculateUtility(utility, adjacencyBonus);
@@ -240,10 +249,7 @@ public class MiniMaxABPruning {
 						utility = calculateUtility(utility, adjacencyBonus);
 						adjacencyBonus++;
 						}
-					}
-					
-					
-					
+					}				
 					else {
 						adjacencyBonus = 0;
 					}
@@ -296,6 +302,7 @@ public class MiniMaxABPruning {
 			
 			for(int j = 0; j < 5; j++) {
 				elapsedTime = (new Date()).getTime() - startTime;
+				// White player
 				if (currPlayer == 0) {
 					//row adjacency check
 					if (boardState.getPieceAt(i, j).toString().equals("w")
@@ -313,7 +320,8 @@ public class MiniMaxABPruning {
 					else {
 						adjacencyBonus = 0;
 					} 
-				} 
+				}
+				// Black player
 				else if (currPlayer == 1){
 					//row adjacency check
 					if (boardState.getPieceAt(i, j).toString().equals("b")
@@ -334,392 +342,22 @@ public class MiniMaxABPruning {
 				}
 			}
 		}
-//		elapsedTime = (new Date()).getTime() - startTime;
-//		// column adjacency check
-//		for(int j = 0; j < 6; j++) {
-//			elapsedTime = (new Date()).getTime() - startTime;
-//			for (int i = 0; i < 5; i++) {
-//				elapsedTime = (new Date()).getTime() - startTime;
-//				if (currPlayer == 0) {
-//					if (boardState.getPieceAt(i, j).toString().equals("w")
-//							&& boardState.getPieceAt(i+1, j).toString().equals("w")) {
-//						utility = calculateUtility(utility, adjacencyBonus);
-//						adjacencyBonus++;
-//					} else {
-//						adjacencyBonus = 0;
-//					} 
-//				}
-//				else if(currPlayer == 1){
-//					if (boardState.getPieceAt(i, j).toString().equals("b")
-//							&& boardState.getPieceAt(i+1, j).toString().equals("b")) {
-//						utility = calculateUtility(utility, adjacencyBonus);
-//						adjacencyBonus++;
-//					} else {
-//						adjacencyBonus = 0;
-//					}
-//				}			
-//			}
-//		}
-		
-//		elapsedTime = (new Date()).getTime() - startTime;
-//		// Top-left to bottom-right diagonal adjacency check
-//		for(int i = 0; i < 5; i++) {
-//			elapsedTime = (new Date()).getTime() - startTime;
-//			if (currPlayer == 0) {
-//				if (boardState.getPieceAt(i, i).toString().equals("w")
-//							&& boardState.getPieceAt(i+1, i+1).toString().equals("w")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//				} 
-//				if(i < 4) {
-//					if (boardState.getPieceAt(i, i+1).toString().equals("w")
-//							&& boardState.getPieceAt(i+1, i+2).toString().equals("w")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//					} 
-//					if (boardState.getPieceAt(i+1, i).toString().equals("w")
-//							&& boardState.getPieceAt(i+2, i+1).toString().equals("w")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//					} 
-//				}
-//				else {
-//					adjacencyBonus = 0;
-//				}
-//			}
-//			else if (currPlayer == 1) {
-//				if (boardState.getPieceAt(i, i).toString().equals("b")
-//						&& boardState.getPieceAt(i+1, i+1).toString().equals("b")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//				} 
-//				if(i < 4) {
-//					if (boardState.getPieceAt(i, i+1).toString().equals("b")
-//							&& boardState.getPieceAt(i+1, i+2).toString().equals("b")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//					} 
-//					if (boardState.getPieceAt(i+1, i).toString().equals("b")
-//							&& boardState.getPieceAt(i+2, i+1).toString().equals("b")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//					} 
-//				}
-//				else {
-//					adjacencyBonus = 0;
-//				}
-//			}
-//		}
-		
-//		elapsedTime = (new Date()).getTime() - startTime;
-//		// Top-right to bottom-left diagonal adjacency check
-//		for(int i = 0; i < 5; i++) {
-//			elapsedTime = (new Date()).getTime() - startTime;
-//			if (currPlayer == 0) {
-//				if (boardState.getPieceAt(i, 5-i).toString().equals("w")
-//							&& boardState.getPieceAt(i+1, 4-i).toString().equals("w")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//				} 
-//				if(i < 4) {				
-//					if (boardState.getPieceAt(i, 4-i).toString().equals("w")
-//							&& boardState.getPieceAt(i+1, 3-i).toString().equals("w")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//					} 
-//					if (boardState.getPieceAt(i+1, 5-i).toString().equals("w")
-//							&& boardState.getPieceAt(i+2, 4-i).toString().equals("w")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//					}								 
-//				}
-//				else {
-//					adjacencyBonus = 0;
-//				}
-//			}
-//			else if (currPlayer == 1) {
-//				if (boardState.getPieceAt(i, 5-i).toString().equals("b")
-//						&& boardState.getPieceAt(i+1, 4-i).toString().equals("b")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//				} 
-//				if(i < 4) {				
-//					if (boardState.getPieceAt(i, 4-i).toString().equals("b")
-//							&& boardState.getPieceAt(i+1, 3-i).toString().equals("b")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//					} 
-//					if (boardState.getPieceAt(i+1, 5-i).toString().equals("b")
-//							&& boardState.getPieceAt(i+2, 4-i).toString().equals("b")) {
-//					utility = calculateUtility(utility, adjacencyBonus);
-//					adjacencyBonus++;
-//					}								 
-//				}				
-//				else {
-//					adjacencyBonus = 0;
-//				}
-//			}
-//		}
-		
 		return utility;
 	}
-
+	
+	//Very simple utility function, not used by default.
 	public  int getUtility2(PentagoBoardState boardState, int currPlayer) {
+		//player win
 		if (boardState.getWinner() == currPlayer) {
 			return 1;
 		}
-
+		//draw
 		else if (boardState.getWinner() == Board.DRAW) {
 			return 0;
+		} 
+		//player loss
+		else {
+			return -1;
 		}
-
-		else return -1;
-	}
-	
-	public  int getUtility3(PentagoBoardState boardState, int currPlayer) {
-		int utility = 0;
-		int adjacencyBonus = 0;
-		
-		if (boardState.gameOver()) {
-			if (boardState.getWinner() == currPlayer) {
-				utility = 9001;
-				return utility;
-			}
-			else {
-				utility = -5000;
-				return utility;
-				}
-		}
-		elapsedTime = (new Date()).getTime() - startTime;
-		// row adjacency check
-		for(int i = 0; i < 6; i++) {
-			elapsedTime = (new Date()).getTime() - startTime;
-			for(int j = 0; j < 5; j++) {
-				elapsedTime = (new Date()).getTime() - startTime;
-				if (currPlayer == 0) {
-					if (boardState.getPieceAt(i, j).toString().equals("w")
-							&& boardState.getPieceAt(i, j+1).toString().equals("w")) {
-						utility = calculateUtility(utility, adjacencyBonus);
-						adjacencyBonus++;
-					} 
-					
-					else {
-						adjacencyBonus = 0;
-					}
-				} 
-				else if (currPlayer == 1){
-					if (boardState.getPieceAt(i, j).toString().equals("b")
-							&& boardState.getPieceAt(i, j+1).toString().equals("b")) {
-						utility = calculateUtility(utility, adjacencyBonus);
-						adjacencyBonus++;
-					} else {
-						adjacencyBonus = 0;
-					} 
-				}
-			}
-		}
-		elapsedTime = (new Date()).getTime() - startTime;
-		// column adjacency check
-		for(int j = 0; j < 6; j++) {
-			elapsedTime = (new Date()).getTime() - startTime;
-			for (int i = 0; i < 5; i++) {
-				elapsedTime = (new Date()).getTime() - startTime;
-				if (currPlayer == 0) {
-					if (boardState.getPieceAt(i, j).toString().equals("w")
-							&& boardState.getPieceAt(i+1, j).toString().equals("w")) {
-						utility = calculateUtility(utility, adjacencyBonus);
-						adjacencyBonus++;
-					} else {
-						adjacencyBonus = 0;
-					} 
-				}
-				else if(currPlayer == 1){
-					if (boardState.getPieceAt(i, j).toString().equals("b")
-							&& boardState.getPieceAt(i+1, j).toString().equals("b")) {
-						utility = calculateUtility(utility, adjacencyBonus);
-						adjacencyBonus++;
-					} else {
-						adjacencyBonus = 0;
-					}
-				}			
-			}
-		}
-		elapsedTime = (new Date()).getTime() - startTime;
-		// Top-left to bottom-right diagonal adjacency check
-		for(int i = 0; i < 5; i++) {
-			elapsedTime = (new Date()).getTime() - startTime;
-			if (currPlayer == 0) {
-				if (boardState.getPieceAt(i, i).toString().equals("w")
-							&& boardState.getPieceAt(i+1, i+1).toString().equals("w")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-				} 
-				if(i < 4) {
-					if (boardState.getPieceAt(i, i+1).toString().equals("w")
-							&& boardState.getPieceAt(i+1, i+2).toString().equals("w")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-					} 
-					if (boardState.getPieceAt(i+1, i).toString().equals("w")
-							&& boardState.getPieceAt(i+2, i+1).toString().equals("w")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-					} 
-				}
-				else {
-					adjacencyBonus = 0;
-				}
-			}
-			else if (currPlayer == 1) {
-				if (boardState.getPieceAt(i, i).toString().equals("b")
-						&& boardState.getPieceAt(i+1, i+1).toString().equals("b")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-				} else {
-					adjacencyBonus = 0;
-				}
-			}
-		}
-		elapsedTime = (new Date()).getTime() - startTime;
-		// Top-right to bottom-left diagonal adjacency check
-		for(int i = 0; i < 5; i++) {
-			elapsedTime = (new Date()).getTime() - startTime;
-			if (currPlayer == 0) {
-				if (boardState.getPieceAt(i, 5-i).toString().equals("w")
-							&& boardState.getPieceAt(i+1, 4-i).toString().equals("w")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-				} 
-				if(i < 4) {				
-					if (boardState.getPieceAt(i, 4-i).toString().equals("w")
-							&& boardState.getPieceAt(i+1, 3-i).toString().equals("w")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-					} 
-					if (boardState.getPieceAt(i+1, 5-i).toString().equals("w")
-							&& boardState.getPieceAt(i+2, 4-i).toString().equals("w")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-					}								 
-				}
-				else {
-					adjacencyBonus = 0;
-				}
-			}
-			else if (currPlayer == 1) {
-				if (boardState.getPieceAt(i, 5-i).toString().equals("b")
-						&& boardState.getPieceAt(i+1, 4-i).toString().equals("b")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-				} 
-				if(i < 4) {				
-					if (boardState.getPieceAt(i, 4-i).toString().equals("b")
-							&& boardState.getPieceAt(i+1, 3-i).toString().equals("b")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-					} 
-					if (boardState.getPieceAt(i+1, 5-i).toString().equals("b")
-							&& boardState.getPieceAt(i+2, 4-i).toString().equals("b")) {
-					utility = calculateUtility(utility, adjacencyBonus);
-					adjacencyBonus++;
-					}								 
-				}				
-				else {
-					adjacencyBonus = 0;
-				}
-			}
-		}
-		elapsedTime = (new Date()).getTime() - startTime;
-		return utility;
-	}
-	
-	public  PentagoMove miniMaxStrategy (PentagoBoardState boardState, int currPlayer){
-		//PentagoMove bestMove = null;
-		int bestMoveUtility = 0;
-		int someMoveUtility = 0;
-//		int ctr = 0;
-		elapsedTime = 0L;
-		startTime = System.currentTimeMillis();
-	
-		while(elapsedTime < TIME_LIMIT) {
-			
-//			if(elapsedTime >= TIME_LIMIT) {
-//				break;
-//			}
-			
-			if (boardState.getTurnNumber() > 8) {
-				maxDepth = 3;
-			}
-			
-			ArrayList<PentagoMove> legalMoves = boardState.getAllLegalMoves();
-			
-			firstMove = legalMoves.get(0);
-			
-	//		ArrayList<PentagoMove> culledList = new ArrayList<PentagoMove>(legalMoves.subList(0, legalMoves.size()/(1)));
-	
-	//		System.out.println("Branching factor: " + culledList.size());
-	//		for(PentagoMove someMove : culledList) {
-			System.out.println("Branching factor: " + legalMoves.size()); //TODO		
-			for(PentagoMove someMove : legalMoves) {
-				computeCounter = 0;
-				elapsedTime = (new Date()).getTime() - startTime;
-//				if (ctr == 0) {
-//					firstMove = someMove;
-//				}
-	//			PentagoBoardState clonedBoardState = (PentagoBoardState) boardState.clone();
-	//			clonedBoardState.processMove(someMove);
-	//			someMoveUtility = evaluateBoard(clonedBoardState, currPlayer, 0, true, alpha, beta);
-				
-				
-				
-//				someMoveUtility = evaluateBoard(boardState, currPlayer, 0, true, alpha, beta, elapsedTime);
-//				elapsedTime = (new Date()).getTime() - startTime;
-//				
-//				if (someMoveUtility > 1337000) {
-//					if (bestMove == null) {
-//						System.out.println("1337code: firstmove");
-//						elapsedTime = 0L;
-//						return firstMove;
-//					} else {
-//						System.out.println("1337code: best-move");
-//						elapsedTime = 0L;
-//						return bestMove;
-//					}
-//				}
-//				
-//				if (someMoveUtility > bestMoveUtility) {
-//					bestMoveUtility = someMoveUtility;
-//					bestMove = someMove;
-//				}
-				
-				
-				
-				
-				
-				
-//				ctr++;
-	//			System.out.println("Node: "+ctr);
-	//			System.out.println("Turn: "+boardState.getTurnNumber()+" utility: "+someMoveUtility); //TODO
-	//			System.out.println("maxDepth = "+maxDepth+"\n"
-	//							+"branching: "+ legalMoves.size() +"\n"
-	//							+ " prune counter: "+computeCounter+"\n");
-				
-	//			if (bestMoveUtility > 9000) {
-	//				break;
-	//			}
-			}
-	//		System.out.println("Chosen move: "+bestMove.toPrettyString()+" utility: "+bestMoveUtility); //TODO
-
-			
-			if (bestMove == null) {
-				System.out.println("Elapsed time: "+elapsedTime+"\nwhile break: firstmove");
-				return firstMove;
-			}
-			System.out.println("Elapsed time: "+elapsedTime+"\nwhile break: BEST move");
-			return bestMove;
-		}
-		System.err.println("Timeout: using first move");
-		ArrayList<PentagoMove> legalMoves = boardState.getAllLegalMoves();
-		return legalMoves.get(0);
 	}
 }
