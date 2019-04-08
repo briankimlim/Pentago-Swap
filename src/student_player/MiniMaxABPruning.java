@@ -49,9 +49,9 @@ public class MiniMaxABPruning {
 		
 		//start using maxDepth = 3 once enough turns have passed to safely be within 2000ms turn time limit
 		//This is to have a better chance against other "smart" players
-		if (boardState.getTurnNumber() > 6) {
+		if (boardState.getTurnNumber() > 7) {
 			maxDepth = 3;
-		}		
+		}
 		
 		//Finds the best MoveObj using a-b pruning algorithm in evaluateBoardABPruning
 		MoveObj bestMoveObj = evaluateBoardABPruning(boardState, currPlayer, 0, true, alpha, beta);
