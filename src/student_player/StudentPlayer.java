@@ -4,6 +4,8 @@ import boardgame.Move;
 
 import pentago_swap.PentagoPlayer;
 import pentago_swap.PentagoBoardState;
+import pentago_swap.PentagoMove;
+import pentago_swap.PentagoBoardState.Quadrant;
 
 /** A player file submitted by a student. */
 public class StudentPlayer extends PentagoPlayer {
@@ -26,10 +28,17 @@ public class StudentPlayer extends PentagoPlayer {
         // You probably will make separate functions in MyTools.
         // For example, maybe you'll need to load some pre-processed best opening
         // strategies...
-        MyTools.getSomething();
+        //MyTools.getSomething();
+    	long startTime = System.currentTimeMillis();
+    	Move myMove = OpeningStrat.openingStrategy(boardState, boardState.getTurnPlayer());
+    	long endTime = System.currentTimeMillis();
+    	System.out.println(myMove.toPrettyString() + " Turn: "+boardState.getTurnNumber() + " Took "+(endTime - startTime)+" ms");
 
-        Move myMove = boardState.getRandomMove();
+        
+        //Move myMove = boardState.getRandomMove();
+//        Move myMove = MiniMax.miniMaxStrategy(boardState, boardState.getTurnPlayer());
 
+        
         // Return your move to be processed by the server.
         return myMove;
     }
