@@ -1,15 +1,14 @@
 package student_player;
 
 import java.util.ArrayList;
-
 import boardgame.Move;
-
-import pentago_swap.PentagoPlayer;
 import pentago_swap.PentagoBoardState;
 import pentago_swap.PentagoMove;
 import pentago_swap.PentagoBoardState.Quadrant;
 
 public class OpeningStrat {
+	
+	private OpeningStrat() {}
 	
 	public static Move openingStrategy(PentagoBoardState boardState, int player) {
 		
@@ -34,8 +33,9 @@ public class OpeningStrat {
 	        	return firstMoveTwo;
 	        }
 	        else {
-	        	//If something goes awry, play the first legal move (will place pieces in TL quadrant usually)
-	        	//Same error condition for the following moves as well
+	        	/* If something goes awry, play the first legal move (will place pieces in TL quadrant usually).
+	        	 * Same error condition for the following moves as well.
+	        	 **/
 	        	ArrayList<PentagoMove> legalMoves = boardState.getAllLegalMoves();
 	        	return legalMoves.get(0);
 	        }
@@ -113,7 +113,7 @@ public class OpeningStrat {
 	    	}	   
 	    }
 	    else {
-	    	//If we are past Turn 3, start using MiniMax with a-b pruning
+	    	//If we are past Player's Turn 3, start using MiniMax with a-b pruning
 	    	MiniMaxABPruning instc = new MiniMaxABPruning();
 	    	return instc.abPruningStrategy(boardState, boardState.getTurnPlayer());
 	    }

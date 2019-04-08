@@ -1,21 +1,14 @@
 package student_player;
 
 import java.util.ArrayList;
-import java.util.Date;
-
 import pentago_swap.PentagoBoardState;
 import pentago_swap.PentagoMove;
 import boardgame.Board;
-
 
 public class MiniMaxABPruning {
 	private int maxDepth = 2;
 	private int alpha = -100;
 	private int beta = 100;
-	
-	private long elapsedTime = 0L;
-	private long startTime = 0L;
-	private int TIME_LIMIT = 1800;
 	
 	/* Custom object used for storing a PentagoMove & its associated utility value.
 	 */
@@ -53,26 +46,22 @@ public class MiniMaxABPruning {
 	 * @return PentagoMove to be played for the current turn
 	 */
 	public PentagoMove abPruningStrategy (PentagoBoardState boardState, int currPlayer){
-		elapsedTime = 0L;
-		startTime = System.currentTimeMillis();
 		
-		//Used for finding the first legal move given the board configuration
-		ArrayList<PentagoMove> legalMoves = boardState.getAllLegalMoves();
-		PentagoMove firstMove = legalMoves.get(0);
+		//start using maxDepth = 3 once enough turns have passed to safely be within 2000ms turn time limit
+		//This is to have a better chance against other "smart" players
+		if (boardState.getTurnNumber() > 6) {
+			maxDepth = 3;
+		}		
 		
-//		while(elapsedTime < TIME_LIMIT) {
-			MoveObj bestMoveObj = evaluateBoard(boardState, currPlayer, 0, true, alpha, beta, elapsedTime);
-			
-			//If the best move wasn't properly found, return the first legal move
-			if (bestMoveObj.getMove() == null && boardState.isLegal(firstMove)) {
-				System.out.println("Elapsed time: "+elapsedTime+"\nwhile break: firstmove");
-				return firstMove;
-			}
-			System.out.println("Elapsed time: "+elapsedTime+"\nwhile break: BEST move");
-			return bestMoveObj.getMove();
-//		}
-//		System.err.println("while Timeout: using first move");
-//		return firstMove;
+		//Finds the best MoveObj using a-b pruning algorithm in evaluateBoardABPruning
+		MoveObj bestMoveObj = evaluateBoardABPruning(boardState, currPlayer, 0, true, alpha, beta);
+		
+		//If the best move wasn't properly found, return the first legal move
+		if (bestMoveObj.getMove() == null) {
+			ArrayList<PentagoMove> legalMoves = boardState.getAllLegalMoves();
+			return legalMoves.get(0);
+		}
+		return bestMoveObj.getMove();
 	}
 	
 	/** Recursively finds the optimal move and its associated utility value using alpha-beta pruning.
@@ -82,23 +71,16 @@ public class MiniMaxABPruning {
 	 * @param isMaximizer
 	 * @param alpha
 	 * @param beta
-	 * @param elapsedTime
 	 * @return bestMoveObj containing the optimal move and its associated utility value.
 	 */
-	public MoveObj evaluateBoard(PentagoBoardState boardState, int currPlayer, int depth, boolean isMaximizer, int alpha, int beta, long elapsedTime) {
+	private MoveObj evaluateBoardABPruning(PentagoBoardState boardState, int currPlayer, int depth, boolean isMaximizer, int alpha, int beta) {
 		
-//		if(elapsedTime > TIME_LIMIT) {
-//			System.err.println("Bad bad timeout code....");
-//			return new MoveObj(13371337);
-//		}
-		
-		// terminating condition
+		// terminating condition when we reach designated max depth or game over
 		if (depth == maxDepth || boardState.gameOver()) {
 			int value = getUtility(boardState, currPlayer);
 			return new MoveObj(value);
 		}
-		elapsedTime = (new Date()).getTime() - startTime;
-		
+
 		MoveObj someMoveObj;
 		
 		//If the current call is the maximizer
@@ -108,12 +90,8 @@ public class MiniMaxABPruning {
 			for(PentagoMove someMove: legalMoves) {
 				PentagoBoardState clonedBoardState = (PentagoBoardState) boardState.clone();
 				clonedBoardState.processMove(someMove);
-				someMoveObj = evaluateBoard(clonedBoardState, currPlayer, depth+1, false, alpha, beta, elapsedTime);
-				
-//				if(elapsedTime > TIME_LIMIT) {
-//					System.err.println("Maximizer break timeout code!");
-//					break;
-//				}
+				someMoveObj = evaluateBoardABPruning(clonedBoardState, currPlayer, depth+1, false, alpha, beta);
+
 				if (bestMoveObj.getValue() < someMoveObj.getValue()) {
 					bestMoveObj = someMoveObj;
 					bestMoveObj.setMove(someMove);
@@ -139,12 +117,8 @@ public class MiniMaxABPruning {
 			for(PentagoMove someMove: legalMoves) {
 				PentagoBoardState clonedBoardState = (PentagoBoardState) boardState.clone();
 				clonedBoardState.processMove(someMove);
-				someMoveObj = evaluateBoard(clonedBoardState, currPlayer, depth+1, true, alpha, beta, elapsedTime);
-				
-//				if(elapsedTime > TIME_LIMIT) {
-//					System.err.println("Maximizer break timeout code!");
-//					break;
-//				}
+				someMoveObj = evaluateBoardABPruning(clonedBoardState, currPlayer, depth+1, true, alpha, beta);
+
 				if (bestMoveObj.getValue() > someMoveObj.getValue()) {
 					bestMoveObj = someMoveObj;
 					bestMoveObj.setMove(someMove);
@@ -184,13 +158,12 @@ public class MiniMaxABPruning {
 	 * @param currPlayer
 	 * @return utility value
 	 */
-	public int getUtility(PentagoBoardState boardState, int currPlayer) {
+	private int getUtility(PentagoBoardState boardState, int currPlayer) {
 		int utility = 0;
 		int adjacencyBonus = 0;
 		
-		/* If a board win, loss or draw is detected, award points accordingly.
-		 * Arbitrary points awarded must be within the bounds of alpha & beta.
-		 * */
+		/* If a board (win, loss, draw) is detected, award points accordingly.
+		 */
 		if (boardState.gameOver()) {
 			if (boardState.getWinner() == currPlayer) {
 				utility = 50;
@@ -204,9 +177,8 @@ public class MiniMaxABPruning {
 		
 		/* Utility points are awarded for having adjacent pieces of the Player's color
 		 * in horizontal, vertical and diagonal orientations.
-		 * */
+		 */
 		for(int i = 0; i < 6; i++) {
-			elapsedTime = (new Date()).getTime() - startTime;
 			
 			//Diagonals adjacency checks
 			if(i < 5) {
@@ -224,7 +196,8 @@ public class MiniMaxABPruning {
 							&& boardState.getPieceAt(i+1, 4-i).toString().equals("w")) {
 					utility = calculateUtility(utility, adjacencyBonus);
 					adjacencyBonus++;
-					} 
+					}
+					//Makes sure we stay within Board's bounds
 					if(i < 4) {
 						// Top-left to bottom-right diagonal adjacency check
 						if (boardState.getPieceAt(i, i+1).toString().equals("w")
@@ -268,7 +241,8 @@ public class MiniMaxABPruning {
 							&& boardState.getPieceAt(i+1, 4-i).toString().equals("b")) {
 						utility = calculateUtility(utility, adjacencyBonus);
 						adjacencyBonus++;
-					} 
+					}
+					//Makes sure we stay within Board's bounds
 					if(i < 4) {
 						// Top-left to bottom-right diagonal adjacency check
 						if (boardState.getPieceAt(i, i+1).toString().equals("b")
@@ -301,7 +275,6 @@ public class MiniMaxABPruning {
 			}
 			
 			for(int j = 0; j < 5; j++) {
-				elapsedTime = (new Date()).getTime() - startTime;
 				// White player
 				if (currPlayer == 0) {
 					//row adjacency check
@@ -344,9 +317,13 @@ public class MiniMaxABPruning {
 		}
 		return utility;
 	}
-	
-	//Very simple utility function, not used by default.
-	public  int getUtility2(PentagoBoardState boardState, int currPlayer) {
+
+	/** Simple utility calculation function, not used by default.
+	 * @param boardState
+	 * @param currPlayer
+	 * @return utility value
+	 */
+	private int getUtilitySimple(PentagoBoardState boardState, int currPlayer) {
 		//player win
 		if (boardState.getWinner() == currPlayer) {
 			return 1;
