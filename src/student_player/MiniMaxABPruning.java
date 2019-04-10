@@ -80,8 +80,6 @@ public class MiniMaxABPruning {
 			return new MoveObj(value);
 		}
 
-		MoveObj someMoveObj;
-		
 		//If the current call is the maximizer
 		if(isMaximizer) {
 			MoveObj bestMoveObj = new MoveObj(-100);
@@ -89,7 +87,7 @@ public class MiniMaxABPruning {
 			for(PentagoMove someMove: legalMoves) {
 				PentagoBoardState clonedBoardState = (PentagoBoardState) boardState.clone();
 				clonedBoardState.processMove(someMove);
-				someMoveObj = evaluateBoardABPruning(clonedBoardState, currPlayer, depth+1, false, alpha, beta);
+				MoveObj someMoveObj = evaluateBoardABPruning(clonedBoardState, currPlayer, depth+1, false, alpha, beta);
 
 				if (bestMoveObj.getValue() < someMoveObj.getValue()) {
 					bestMoveObj = someMoveObj;
@@ -116,7 +114,7 @@ public class MiniMaxABPruning {
 			for(PentagoMove someMove: legalMoves) {
 				PentagoBoardState clonedBoardState = (PentagoBoardState) boardState.clone();
 				clonedBoardState.processMove(someMove);
-				someMoveObj = evaluateBoardABPruning(clonedBoardState, currPlayer, depth+1, true, alpha, beta);
+				MoveObj someMoveObj = evaluateBoardABPruning(clonedBoardState, currPlayer, depth+1, true, alpha, beta);
 
 				if (bestMoveObj.getValue() > someMoveObj.getValue()) {
 					bestMoveObj = someMoveObj;
