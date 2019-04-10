@@ -48,7 +48,6 @@ public class MiniMaxABPruning {
 	public PentagoMove abPruningStrategy (PentagoBoardState boardState, int currPlayer){
 		
 		//start using maxDepth = 3 once enough turns have passed to safely be within 2000ms turn time limit
-		//This is to have a better chance against other "smart" players
 		if (boardState.getTurnNumber() > 7) {
 			maxDepth = 3;
 		}
@@ -167,6 +166,10 @@ public class MiniMaxABPruning {
 		if (boardState.gameOver()) {
 			if (boardState.getWinner() == currPlayer) {
 				utility = 50;
+				return utility;
+			}
+			else if (boardState.getWinner() == Board.DRAW) {
+				utility = -5;
 				return utility;
 			}
 			else {
